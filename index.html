@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CounterShield-Vision | AI-Powered Counterfeit Detection</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00d4aa;
+            --primary-glow: rgba(0, 212, 170, 0.3);
+            --danger: #ff4757;
+            --warning: #ffa502;
+            --info: #3742fa;
+            --purple: #a55eea;
+            --bg-dark: #0a0e17;
+            --bg-card: #111827;
+            --bg-elevated: #1a2332;
+            --bg-hover: #232f42;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(148, 163, 184, 0.1);
+            --gradient-brand: linear-gradient(135deg, #00d4aa 0%, #3742fa 50%, #a55eea 100%);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(0, 212, 170, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(55, 66, 250, 0.03) 0%, transparent 50%),
+                linear-gradient(rgba(0, 212, 170, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 212, 170, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+            pointer-events: none;
+            animation: gridPulse 10s ease-in-out infinite;
+        }
+
+        @keyframes gridPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .scan-line {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            animation: scanDown 4s linear infinite;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        @keyframes scanDown {
+            0% { top: 0; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10, 14, 23, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 2rem;
+        }
+
+        .header-inner {
+            max-width: 1900px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--gradient-brand);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            position: relative;
+            animation: logoPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes logoPulse {
+            0%, 100% { box-shadow: 0 0 20px var(--primary-glow); }
+            50% { box-shadow: 0 0 40px var(--primary-glow), 0 0 60px rgba(55, 66, 250, 0.2); }
+        }
+
+        .logo-text h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--gradient-brand);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-text p {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .header-metrics {
+            display: flex;
+            gap: 2.5rem;
+        }
+
+        .metric {
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--primary);
+        }
+
+        .metric-label {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .header-status {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 50px;
+            font-size: 0.75rem;
+        }
+
+        .status-badge.active {
+            background: rgba(0, 212, 170, 0.1);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .status-badge.active::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.3); }
+        }
+
+        /* Main Layout */
+        .main {
+            position: relative;
+            z-index: 1;
+            max-width: 1900px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            grid-template-rows: auto auto 1fr;
+            gap: 1rem;
+            min-height: calc(100vh - 140px);
+        }
+
+        @media (max-width: 1400px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-body {
+            padding: 1.25rem;
+        }
+
+        /* Detection Zone */
+        .detection-zone {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, rgba(0, 212, 170, 0.05), rgba(55, 66, 250, 0.05));
+            border: 1px solid var(--primary);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .detection-zone::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 170, 0.1), transparent);
+            animation: detectScan 3s linear infinite;
+        }
+
+        @keyframes detectScan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .detection-card {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 1.25rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .detection-card h4 {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.75rem;
+        }
+
+        .detection-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .detection-value.success { color: var(--primary); }
+        .detection-value.danger { color: var(--danger); }
+        .detection-value.warning { color: var(--warning); }
+
+        .detection-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* Analysis Panel */
+        .analysis-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 1rem;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--primary);
+            background: rgba(0, 212, 170, 0.05);
+        }
+
+        .upload-zone.active {
+            border-color: var(--primary);
+            background: rgba(0, 212, 170, 0.1);
+            animation: uploadPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes uploadPulse {
+            0%, 100% { box-shadow: inset 0 0 20px rgba(0, 212, 170, 0.1); }
+            50% { box-shadow: inset 0 0 40px rgba(0, 212, 170, 0.2); }
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .upload-text strong {
+            color: var(--primary);
+        }
+
+        /* Sample Images */
+        .sample-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .sample-item {
+            aspect-ratio: 1;
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .sample-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .sample-item.analyzing {
+            animation: analyzing 1s ease-in-out infinite;
+        }
+
+        @keyframes analyzing {
+            0%, 100% { box-shadow: 0 0 0 2px var(--primary); }
+            50% { box-shadow: 0 0 0 4px var(--primary), 0 0 20px var(--primary-glow); }
+        }
+
+        .sample-badge {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .sample-badge.fake { background: var(--danger); }
+        .sample-badge.genuine { background: var(--primary); }
+        .sample-badge.suspect { background: var(--warning); color: #000; }
+
+        /* Results Panel */
+        .results-panel {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .result-item {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .result-item.counterfeit { border-left-color: var(--danger); }
+        .result-item.genuine { border-left-color: var(--primary); }
+        .result-item.suspicious { border-left-color: var(--warning); }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .result-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .result-confidence {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .result-confidence.high { color: var(--danger); }
+        .result-confidence.medium { color: var(--warning); }
+        .result-confidence.low { color: var(--primary); }
+
+        .result-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .detail-label { color: var(--text-muted); }
+        .detail-value { font-family: 'IBM Plex Mono', monospace; }
+
+        /* Live Feed */
+        .feed-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .feed-item {
+            display: flex;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            animation: feedIn 0.4s ease;
+        }
+
+        @keyframes feedIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .feed-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .feed-icon.danger { background: rgba(255, 71, 87, 0.2); }
+        .feed-icon.warning { background: rgba(255, 165, 2, 0.2); }
+        .feed-icon.success { background: rgba(0, 212, 170, 0.2); }
+        .feed-icon.info { background: rgba(55, 66, 250, 0.2); }
+
+        .feed-content { flex: 1; }
+
+        .feed-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .feed-meta {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        /* Model Performance */
+        .model-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .model-stat {
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .model-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .model-stat-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 0.25rem;
+        }
+
+        /* Progress Bars */
+        .progress-item {
+            margin-bottom: 1rem;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .progress-label { color: var(--text-secondary); }
+        .progress-value { font-family: 'IBM Plex Mono', monospace; color: var(--primary); }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--bg-elevated);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-fill.primary { background: var(--primary); }
+        .progress-fill.warning { background: var(--warning); }
+        .progress-fill.danger { background: var(--danger); }
+        .progress-fill.info { background: var(--info); }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--gradient-brand);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px var(--primary-glow);
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .action-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .action-row .btn { flex: 1; justify-content: center; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--bg-card);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1000;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Detail Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            backdrop-filter: blur(10px);
+        }
+
+        .modal-overlay.show { display: flex; }
+
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .modal-body { padding: 1.5rem; }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="scan-line"></div>
+
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo">
+                <div class="logo-icon">🛡️</div>
+                <div class="logo-text">
+                    <h1>CounterShield-Vision</h1>
+                    <p>Real-Time Detection Pipeline</p>
+                </div>
+            </div>
+            <div class="header-metrics">
+                <div class="metric">
+                    <div class="metric-value" id="scansToday">24,847</div>
+                    <div class="metric-label">Scans Today</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="detectionsToday">1,247</div>
+                    <div class="metric-label">Counterfeits Found</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="accuracy">99.4%</div>
+                    <div class="metric-label">Accuracy</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="latency">47ms</div>
+                    <div class="metric-label">Avg Latency</div>
+                </div>
+            </div>
+            <div class="header-status">
+                <div class="status-badge active">Pipeline Active</div>
+                <div class="status-badge">ONNX Runtime</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="dashboard">
+            <!-- Detection Zone -->
+            <div class="detection-zone">
+                <div class="detection-card">
+                    <h4>🔍 Images Processed</h4>
+                    <div class="detection-value success" id="processedCount">847,293</div>
+                    <div class="detection-subtitle">+12,847 in last hour</div>
+                </div>
+                <div class="detection-card">
+                    <h4>🚨 Counterfeits Detected</h4>
+                    <div class="detection-value danger" id="counterfeitCount">23,847</div>
+                    <div class="detection-subtitle">2.8% detection rate</div>
+                </div>
+                <div class="detection-card">
+                    <h4>⚡ Processing Speed</h4>
+                    <div class="detection-value warning" id="throughput">1,247</div>
+                    <div class="detection-subtitle">images/second</div>
+                </div>
+            </div>
+
+            <!-- Analysis Panel -->
+            <div class="card analysis-panel">
+                <div class="card-header">
+                    <h3 class="card-title"><span>🔬</span> Image Analysis</h3>
+                </div>
+                <div class="card-body">
+                    <div class="upload-zone" id="uploadZone" onclick="simulateUpload()">
+                        <div class="upload-icon">📤</div>
+                        <div class="upload-text">
+                            <strong>Click to upload</strong> or drag & drop<br>
+                            <small>Supports JPG, PNG, WebP up to 10MB</small>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">Or try sample images:</div>
+                    <div class="sample-grid" id="sampleGrid"></div>
+
+                    <div class="action-row">
+                        <button class="btn btn-primary" onclick="runBatchAnalysis()">
+                            <span>⚡</span> Batch Analyze
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearResults()">
+                            <span>🗑️</span> Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Panel -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><span>📊</span> Detection Results</h3>
+                    <span style="font-size: 0.7rem; color: var(--text-muted);" id="resultCount">0 results</span>
+                </div>
+                <div class="card-body results-panel" id="resultsPanel">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
+                        <p>Upload an image to begin analysis</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Feed -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><span>📡</span> Live Detection Feed</h3>
+                    <span style="font-size: 0.7rem; color: var(--text-muted);">Real-time</span>
+                </div>
+                <div class="card-body">
+                    <div class="feed-container" id="feedContainer"></div>
+                </div>
+            </div>
+
+            <!-- Model Performance -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><span>🧠</span> Model Performance</h3>
+                </div>
+                <div class="card-body">
+                    <div class="model-stats">
+                        <div class="model-stat">
+                            <div class="model-stat-value" style="color: var(--primary);">99.4%</div>
+                            <div class="model-stat-label">Precision</div>
+                        </div>
+                        <div class="model-stat">
+                            <div class="model-stat-value" style="color: var(--info);">98.7%</div>
+                            <div class="model-stat-label">Recall</div>
+                        </div>
+                        <div class="model-stat">
+                            <div class="model-stat-value" style="color: var(--warning);">47ms</div>
+                            <div class="model-stat-label">P95 Latency</div>
+                        </div>
+                        <div class="model-stat">
+                            <div class="model-stat-value" style="color: var(--purple);">2.3GB</div>
+                            <div class="model-stat-label">Memory</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 1.5rem;">
+                        <div class="progress-item">
+                            <div class="progress-header">
+                                <span class="progress-label">Logo Detection</span>
+                                <span class="progress-value">99.2%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill primary" style="width: 99.2%"></div>
+                            </div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-header">
+                                <span class="progress-label">Image Similarity</span>
+                                <span class="progress-value">97.8%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill info" style="width: 97.8%"></div>
+                            </div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-header">
+                                <span class="progress-label">Text-Image Consistency</span>
+                                <span class="progress-value">94.5%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill warning" style="width: 94.5%"></div>
+                            </div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-header">
+                                <span class="progress-label">Distortion Handling</span>
+                                <span class="progress-value">96.3%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill primary" style="width: 96.3%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-row">
+                        <button class="btn btn-secondary" onclick="showModelDetails()">
+                            <span>📈</span> View Metrics
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportReport()">
+                            <span>📄</span> Export Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Details</h3>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <span id="toastIcon">✅</span>
+        <div>
+            <strong id="toastTitle">Success</strong>
+            <div style="font-size: 0.75rem; color: var(--text-muted);" id="toastMsg">Operation completed</div>
+        </div>
+    </div>
+
+    <script>
+        // Sample products data
+        const sampleProducts = [
+            { id: 1, icon: '👟', name: 'Nike Air Max', status: 'fake' },
+            { id: 2, icon: '👜', name: 'Louis Vuitton Bag', status: 'suspect' },
+            { id: 3, icon: '⌚', name: 'Rolex Watch', status: 'fake' },
+            { id: 4, icon: '👕', name: 'Gucci T-Shirt', status: 'genuine' },
+            { id: 5, icon: '🕶️', name: 'Ray-Ban Sunglasses', status: 'fake' },
+            { id: 6, icon: '👠', name: 'Christian Louboutin', status: 'genuine' }
+        ];
+
+        // Live feed events
+        const feedEvents = [
+            { type: 'danger', icon: '🚨', title: 'Counterfeit Nike detected', meta: 'Amazon US • 98.7% confidence' },
+            { type: 'warning', icon: '⚠️', title: 'Suspicious logo variation', meta: 'eBay UK • Manual review needed' },
+            { type: 'success', icon: '✅', title: 'Genuine product verified', meta: 'Alibaba • 99.9% confidence' },
+            { type: 'danger', icon: '🚨', title: 'Fake Rolex listing removed', meta: 'Wish • Auto-enforcement' },
+            { type: 'info', icon: '🔄', title: 'Model checkpoint saved', meta: 'v2.4.1 • 847K samples' },
+            { type: 'danger', icon: '🚨', title: 'Counterfeit network detected', meta: '23 related listings found' }
+        ];
+
+        let results = [];
+        let feedIndex = 0;
+
+        function init() {
+            renderSampleGrid();
+            renderFeed();
+            startLiveUpdates();
+        }
+
+        function renderSampleGrid() {
+            const grid = document.getElementById('sampleGrid');
+            grid.innerHTML = sampleProducts.map(p => `
+                <div class="sample-item" onclick="analyzeProduct(${p.id})" id="sample-${p.id}">
+                    ${p.icon}
+                    <span class="sample-badge ${p.status}">${p.status}</span>
+                </div>
+            `).join('');
+        }
+
+        function analyzeProduct(id) {
+            const product = sampleProducts.find(p => p.id === id);
+            const elem = document.getElementById(`sample-${id}`);
+            
+            elem.classList.add('analyzing');
+            showToast('🔍 Analyzing...', `Processing ${product.name}`);
+
+            setTimeout(() => {
+                elem.classList.remove('analyzing');
+                addResult(product);
+                showToast('✅ Analysis Complete', `${product.name}: ${product.status.toUpperCase()}`);
+            }, 1500);
+        }
+
+        function addResult(product) {
+            const confidence = (Math.random() * 10 + 90).toFixed(1);
+            const result = {
+                id: Date.now(),
+                product: product,
+                confidence: confidence,
+                logoScore: (Math.random() * 5 + 95).toFixed(1),
+                textScore: (Math.random() * 10 + 85).toFixed(1),
+                similarityScore: (Math.random() * 8 + 90).toFixed(1),
+                latency: Math.floor(Math.random() * 30 + 30)
+            };
+
+            results.unshift(result);
+            renderResults();
+            updateCounts();
+        }
+
+        function renderResults() {
+            const panel = document.getElementById('resultsPanel');
+            const count = document.getElementById('resultCount');
+            count.textContent = `${results.length} results`;
+
+            if (results.length === 0) {
+                panel.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
+                        <p>Upload an image to begin analysis</p>
+                    </div>
+                `;
+                return;
+            }
+
+            panel.innerHTML = results.map(r => `
+                <div class="result-item ${r.product.status === 'fake' ? 'counterfeit' : r.product.status === 'suspect' ? 'suspicious' : 'genuine'}">
+                    <div class="result-header">
+                        <span class="result-title">${r.product.icon} ${r.product.name}</span>
+                        <span class="result-confidence ${r.product.status === 'fake' ? 'high' : r.product.status === 'suspect' ? 'medium' : 'low'}">${r.confidence}%</span>
+                    </div>
+                    <div class="result-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Status</span>
+                            <span class="detail-value" style="color: var(--${r.product.status === 'fake' ? 'danger' : r.product.status === 'suspect' ? 'warning' : 'primary'})">${r.product.status.toUpperCase()}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Logo Score</span>
+                            <span class="detail-value">${r.logoScore}%</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Text Match</span>
+                            <span class="detail-value">${r.textScore}%</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Latency</span>
+                            <span class="detail-value">${r.latency}ms</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderFeed() {
+            const container = document.getElementById('feedContainer');
+            container.innerHTML = feedEvents.slice(0, 5).map(e => `
+                <div class="feed-item">
+                    <div class="feed-icon ${e.type}">${e.icon}</div>
+                    <div class="feed-content">
+                        <div class="feed-title">${e.title}</div>
+                        <div class="feed-meta">${e.meta}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateCounts() {
+            const scans = document.getElementById('scansToday');
+            const detections = document.getElementById('counterfeitCount');
+            scans.textContent = (parseInt(scans.textContent.replace(/,/g, '')) + Math.floor(Math.random() * 10)).toLocaleString();
+        }
+
+        function simulateUpload() {
+            const zone = document.getElementById('uploadZone');
+            zone.classList.add('active');
+            showToast('📤 Uploading...', 'Processing image...');
+
+            setTimeout(() => {
+                zone.classList.remove('active');
+                const randomProduct = sampleProducts[Math.floor(Math.random() * sampleProducts.length)];
+                addResult(randomProduct);
+                showToast('✅ Upload Complete', `Detected: ${randomProduct.name}`);
+            }, 2000);
+        }
+
+        function runBatchAnalysis() {
+            showToast('⚡ Batch Processing', 'Analyzing all samples...');
+            let delay = 0;
+            sampleProducts.forEach(p => {
+                setTimeout(() => analyzeProduct(p.id), delay);
+                delay += 800;
+            });
+        }
+
+        function clearResults() {
+            results = [];
+            renderResults();
+            showToast('🗑️ Cleared', 'All results removed');
+        }
+
+        function showModelDetails() {
+            const modal = document.getElementById('modalOverlay');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+
+            title.textContent = '🧠 Model Details';
+            body.innerHTML = `
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">ARCHITECTURE</h4>
+                    <p style="font-size: 0.9rem;">EfficientNet-B4 + CLIP Vision Encoder</p>
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">TRAINING DATA</h4>
+                    <p style="font-size: 0.9rem;">2.4M product images across 847 brand categories</p>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                    <div class="model-stat">
+                        <div class="model-stat-value" style="color: var(--primary);">847M</div>
+                        <div class="model-stat-label">Parameters</div>
+                    </div>
+                    <div class="model-stat">
+                        <div class="model-stat-value" style="color: var(--info);">ONNX</div>
+                        <div class="model-stat-label">Runtime</div>
+                    </div>
+                    <div class="model-stat">
+                        <div class="model-stat-value" style="color: var(--warning);">FP16</div>
+                        <div class="model-stat-label">Precision</div>
+                    </div>
+                    <div class="model-stat">
+                        <div class="model-stat-value" style="color: var(--purple);">TensorRT</div>
+                        <div class="model-stat-label">Optimized</div>
+                    </div>
+                </div>
+            `;
+            modal.classList.add('show');
+        }
+
+        function exportReport() {
+            showToast('📄 Exporting', 'Generating PDF report...');
+        }
+
+        function closeModal(e) {
+            if (e && e.target !== document.getElementById('modalOverlay')) return;
+            document.getElementById('modalOverlay').classList.remove('show');
+        }
+
+        function showToast(title, msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMsg').textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function startLiveUpdates() {
+            setInterval(() => {
+                const scans = document.getElementById('scansToday');
+                const current = parseInt(scans.textContent.replace(/,/g, ''));
+                scans.textContent = (current + Math.floor(Math.random() * 50 + 10)).toLocaleString();
+            }, 2000);
+
+            setInterval(() => {
+                const latency = document.getElementById('latency');
+                latency.textContent = Math.floor(Math.random() * 20 + 40) + 'ms';
+            }, 3000);
+        }
+
+        init();
+    </script>
+</body>
+</html>
